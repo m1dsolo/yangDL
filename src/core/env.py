@@ -24,7 +24,7 @@ def set(**kwargs):
 
         if key == 'EXP_PATH':
             for path_key, path_name in {'LOG_PATH': 'log', 'METRIC_PATH': 'metric', 'CKPT_PATH': 'ckpt'}.items():
-                _global_dict[path_key] = os.path.join(key, path_name)
+                _global_dict[path_key] = os.path.join(val, path_name)
                 mkdir(_global_dict[path_key])
 
             EXP_NAME = os.path.basename(val if val[:-1] != '/' else val[:-1])
