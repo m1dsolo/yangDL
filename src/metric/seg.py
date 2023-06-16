@@ -10,12 +10,10 @@ from ..utils.dl import bincount
 
 
 __all__ = [
-    'ClsMetric',
+    'SegMetric',
 ]
 
-# should not pick best thresh in test set?
-# now only macro, todo: micro, weighted and so on
-class ClsMetric(Metric):
+class SegMetric(Metric):
     def __init__(
         self, 
         num_classes: int,
@@ -28,7 +26,7 @@ class ClsMetric(Metric):
         freq: tuple[str, int] = ('epoch', 1),
     ):
         """
-            classification metric
+            segmentation metric
 
             Args:
                 properties: properties which will auto log to tensorboard
@@ -40,15 +38,15 @@ class ClsMetric(Metric):
 
         if properties is None:
             if num_classes == 2:
-                self.properties = ['acc', 'pos_acc', 'neg_acc', 'precision', 'recall', 'sensitivity', 'specificity', 'f1_score', 'auc', 'ap', 'thresh']
+                self.properties = ['acc', 'pos_acc', 'neg_acc', 'precision', 'recall', 'sensitivity', 'specificity', 'f1_score', 'dice', 'iou', 'thresh']
             else:
-                self.properties = ['acc', 'precision', 'recall', 'sensitivity', 'specificity', 'f1_score', 'auc']
+                self.properties = ['acc', 'precision', 'recall', 'sensitivity', 'specificity', 'f1_score', 'dice', 'iou']
         else:
             self.properties = properties
 
         super().__init__(prefix, freq)
 
-        self.cm = ConfusionMatrix(num_classes=num_classes, thresh=thresh, ignore_idxs=ignore_idxs, eps=eps, save_probs=True)
+        self.cm = ConfusionMatrix(num_classes=num_classes, thresh=thresh, ignore_idxs=ignore_idxs, eps=eps, save_probs=False)
 
     @torch.no_grad()
     def update(
@@ -102,13 +100,13 @@ class ClsMetric(Metric):
         return self.cm.f1_score
 
     @property
-    def auc(self):
-        return self.cm.auc
+    def dice(self):
+        return self.cm.dice
 
     @property
-    def ap(self):
-        return self.cm.ap
-    
+    def iou(self):
+        return self.cm.iou
+
     @property
     def thresh(self):
         return self.cm.thresh

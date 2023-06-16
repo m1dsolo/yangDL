@@ -9,7 +9,6 @@ __all__ = [
     'bincount',
     'ModelExtractor',
     'get_model_devices',
-    'to_device',
 ]
 
 def set_seed(seed: Optional[int] = None):
@@ -91,14 +90,3 @@ def get_model_devices(model):
     for param in model.parameters():
         devices.add(param.device)
     return devices
-
-# def to_device(obj, device: str):
-    # """
-    # make all Tensor in obj(dfs all var in obj) to device
-    # """
-    # for key, val in vars(obj).items():
-        # if isinstance(val, Tensor):
-            # setattr(obj, key, val.to(device))
-        # if hasattr(val, '__dict__'):
-            # to_device(val, device)
-    # return obj

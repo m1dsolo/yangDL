@@ -24,6 +24,8 @@ class ConfusionMatrix(Metric):
 
         prefix: Optional[str] = None,
         freq: tuple[str, int] = ('epoch', 1),
+
+        save_probs: bool = True,
     ):
         """
         Confusion Matrix
@@ -38,6 +40,7 @@ class ConfusionMatrix(Metric):
             ignore_idxs: use to ignore idx
             eps: prevent division by 0
             prefix, freq: see Metric class
+            save_probs: if is False, will save memory, but will only thresh is not str, and cant calculate auc, ap
         """
 
         """ 二分类混淆矩阵 
@@ -65,9 +68,13 @@ class ConfusionMatrix(Metric):
         self._thresh = thresh
         self.add_tensor('_matrix', torch.zeros((num_classes, num_classes), dtype=torch.long))
         self.eps = eps
+        self.save_probs = save_probs
+        if save_probs:
+            assert not isinstance(thresh, str)
 
-        self.add_tensor('probs', torch.tensor([], dtype=torch.float)) # num_classes == 2: (B,), else: (B, C)
-        self.add_tensor('labels', torch.tensor([], dtype=torch.long)) # (B,)
+        if self.save_probs:
+            self.add_tensor('probs', torch.tensor([], dtype=torch.float)) # num_classes == 2: (B,), else: (B, C)
+            self.add_tensor('labels', torch.tensor([], dtype=torch.long)) # (B,)
 
     def _calc_matrix(
         self, 
@@ -108,11 +115,12 @@ class ConfusionMatrix(Metric):
 
         if not isinstance(self._thresh, str):
             self._matrix += self._calc_matrix(probs, labels)
-        if self.num_classes == 2:
-            probs = probs[:, 1]
 
-        self.probs = torch.cat([self.probs, probs], dim=0)
-        self.labels = torch.cat([self.labels, labels], dim=0)
+        if self.save_probs:
+            if self.num_classes == 2:
+                probs = probs[:, 1]
+            self.probs = torch.cat([self.probs, probs], dim=0)
+            self.labels = torch.cat([self.labels, labels], dim=0)
 
     def ravel(self, idx: Optional[int] = None):
         """
@@ -183,6 +191,7 @@ class ConfusionMatrix(Metric):
 
     @property
     def auc(self):
+        assert self.save_probs is True
         res = -1.
         if self.labels.sum().item() not in (0, len(self.labels)):
             res = roc_auc_score(self.labels.cpu().numpy(), self.probs.cpu().numpy(), multi_class='ovr')
@@ -190,12 +199,29 @@ class ConfusionMatrix(Metric):
 
     @property
     def ap(self):
+        assert self.save_probs is True
         assert self.num_classes == 2, f'num_classes={self.num_classes}'
 
         res = -1.
         if self.labels.sum().item() not in (0, len(self.labels)):
             res = average_precision_score(self.labels.cpu().numpy(), self.probs.cpu().numpy())
         return torch.tensor(res, dtype=torch.float)
+
+    @property
+    def dice(self):
+        res = []
+        for idx in range(self.num_classes == 2, self.num_classes):
+            tn, fp, fn, tp = self.ravel(idx)
+            res.append(2 * tp / (fp + 2 * tp + fn + self.eps))
+        return torch.stack(res, dim=0).mean()
+
+    @property
+    def iou(self):
+        res = []
+        for idx in range(self.num_classes == 2, self.num_classes):
+            tn, fp, fn, tp = self.ravel(idx)
+            res.append(tp / (fp + tp + fn + self.eps))
+        return torch.stack(res, dim=0).mean()
     
     @property
     def thresh(self):
@@ -207,6 +233,7 @@ class ConfusionMatrix(Metric):
         if not isinstance(self._thresh, str):
             thresh = self._thresh
         else:
+            assert self.save_probs is True
             labels, probs = self.labels.cpu().numpy(), self.probs.cpu().numpy()
             if labels.sum().item() in (0, len(labels)):
                 thresh = 0.5

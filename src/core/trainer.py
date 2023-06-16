@@ -2,6 +2,7 @@ import torch, os, copy, resource, datetime
 import numpy as np
 from collections import defaultdict
 
+from torch import Tensor
 from torch.cuda.amp import autocast
 from torch.utils.data import DataLoader
 
@@ -192,7 +193,6 @@ class Trainer():
                 model.train() if stage == 'train' else model.eval()
 
             for step, batch in enumerate(loader, 1):
-                batch = [(item.to(self.device) if isinstance(item, torch.Tensor) else item) for item in batch ]
                 step_res = self._do_step(stage, step, batch) or {}
                 progress.update(**step_res)
 
@@ -214,6 +214,7 @@ class Trainer():
     ) -> None:
 
         with autocast():
+            batch = self._batch_to_device(batch)
             return getattr(self.model_module, f'{stage}_step')(batch)
 
     def _save_ckpt(
@@ -288,3 +289,12 @@ class Trainer():
                 self.logger.log(metric, stage, epoch)
             if step is not None and metric.freq[0] == 'step' and step % metric.freq[1] == 0:
                 self.logger.log(metric, stage, step)
+    
+    def _batch_to_device(self, batch):
+        if isinstance(batch, Tensor):
+            batch = batch.to(self.device)
+        if isinstance(batch, dict):
+            batch = {key: val.to(self.device) for key, val in batch.items()}
+        else:
+            batch = [(item.to(self.device) if isinstance(item, torch.Tensor) else item) for item in batch]
+        return batch
