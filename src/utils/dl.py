@@ -1,6 +1,6 @@
 import os, torch, copy
 import numpy as np
-from torch import nn
+from torch import nn, Tensor
 
 from typing import Optional, Sequence
 
@@ -9,7 +9,7 @@ __all__ = [
     'bincount',
     'ModelExtractor',
     'get_model_devices',
-    'mask2box',
+    'to_device',
 ]
 
 def set_seed(seed: Optional[int] = None):
@@ -34,22 +34,38 @@ def bincount(x: torch.Tensor, minl: Optional[int] = None):
         res[i] = (x == i).sum()
     return res
 
-# 存在问题: output为tuple时(DSMIL output)
+# 存在问题: output为tuple时
 class ModelExtractor():
-    def __init__(self, model: nn.Module, names: Sequence = None, reshape_transforms=None):
+    def __init__(
+        self, 
+        model: nn.Module, 
+        module_names: Optional[Sequence[str]] = None, 
+        reshape_transforms=None
+    ):
+        """
+        use to extract model activations and gradients
+
+        Args:
+            model: model to extract
+            module_names: get module's activations and gradients which in module_names
+                - None: register all module in model.named_modules()
+                - Sequence[str]: register all module in module_names
+            reshape_transforms: TODO
+
+        Examples:
+        """
         self.model = copy.deepcopy(model)
         self.model.eval()
         self.reshape_transforms = reshape_transforms
         self.activations = {}
         self.gradients = {}
+
         named_modules = dict(self.model.named_modules())
-        if names is None:
-            names = list(named_modules.keys())
-        for name in names:
-            module = named_modules[name]
-            module.register_forward_hook(self.forward_hook(name))
+        for module_name in module_names or named_modules.keys():
+            module = named_modules[module_name]
+            module.register_forward_hook(self.forward_hook(module_name))
             if hasattr(module, 'register_full_backward_hook'):
-                module.register_full_backward_hook(self.backward_hook(name))
+                module.register_full_backward_hook(self.backward_hook(module_name))
 
     def forward_hook(self, name):
         def fn(module, input, output):
@@ -76,15 +92,13 @@ def get_model_devices(model):
         devices.add(param.device)
     return devices
 
-# mask (H, W) (used for SAM)
-def mask2box(mask: torch.Tensor, padding: int) -> torch.Tensor:
-    y_indices, x_indices = torch.where(mask > 0)
-    x_min, x_max = np.min(x_indices), np.max(x_indices)
-    y_min, y_max = np.min(y_indices), np.max(y_indices)
-
-    x_min = max(0, x_min - np.random.randint(0, padding))
-    x_max = min(mask.shape[1] - 1, x_max + np.random.randint(0, padding))
-    y_min = max(0, y_min - np.random.randint(0, padding))
-    y_max = min(mask.shape[0] - 1, y_max + np.random.randint(0, padding))
-
-    return torch.tensor([x_min, y_min, x_max, y_max])
+# def to_device(obj, device: str):
+    # """
+    # make all Tensor in obj(dfs all var in obj) to device
+    # """
+    # for key, val in vars(obj).items():
+        # if isinstance(val, Tensor):
+            # setattr(obj, key, val.to(device))
+        # if hasattr(val, '__dict__'):
+            # to_device(val, device)
+    # return obj

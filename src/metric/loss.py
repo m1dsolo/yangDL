@@ -8,7 +8,6 @@ from .metric import Metric
 class LossMetric(Metric):
     def __init__(
         self,
-        device: str = 'cpu',
         prefix: Optional[str] = None,
         freq: tuple[str, int] = ('epoch', 1),
     ):
@@ -16,12 +15,12 @@ class LossMetric(Metric):
         loss metric
 
         Args:
-            device, prefix, freq: see Metric class
+            prefix, freq: see Metric class
         """
-        super().__init__(device, prefix, freq)
+        super().__init__(prefix, freq)
 
-        self._loss = torch.tensor(0, dtype=torch.float)
-        self.n = torch.tensor(0, dtype=torch.long)
+        self.add_tensor('_loss', torch.tensor(0, dtype=torch.float))
+        self.add_tensor('n', torch.tensor(0, dtype=torch.long))
 
         self.properties = ['loss']
 
@@ -41,9 +40,3 @@ class LossMetric(Metric):
         if self.n == 0:
             return torch.tensor(-1.)
         return self._loss / self.n
-
-    def reset(self):
-        self._loss = torch.tensor(0, dtype=torch.float)
-        self.n = torch.tensor(0, dtype=torch.long)
-
-        self.to(self.device)

@@ -20,31 +20,18 @@ _global_dict = defaultdict(lambda: None, **{
 def set(**kwargs):
     global _global_dict
     for key, val in kwargs.items():
-        if key == 'EXP_PATH':
-            if val[:-1] == '/':
-                val = val[:-1]
-            rmdir(val)
-
         _global_dict[key] = val
+
+        if key == 'EXP_PATH':
+            for path_key, path_name in {'LOG_PATH': 'log', 'METRIC_PATH': 'metric', 'CKPT_PATH': 'ckpt'}.items():
+                _global_dict[path_key] = os.path.join(key, path_name)
+                mkdir(_global_dict[path_key])
+
+            EXP_NAME = os.path.basename(val if val[:-1] != '/' else val[:-1])
+            _global_dict['EXP_NAME'] = EXP_NAME
 
 
 def get(*keys):
-    res = []
-    for key in keys:
-        if key in ('LOG_PATH', 'METRIC_PATH', 'CKPT_PATH', 'SPLIT_PATH') and key not in _global_dict:
-            path = _global_dict['EXP_PATH']
-            name = {'LOG_PATH': 'log', 'METRIC_PATH': 'metric', 'CKPT_PATH': 'ckpt', 'SPLIT_PATH': 'split'}[key]
-            path = os.path.join(path, name)
-
-            if not os.path.exists(path):
-                mkdir(path)
-
-            res.append(path)
-
-        elif key == 'EXP_NAME':
-            res.append(os.path.basename(get('EXP_PATH')))
-
-        else:
-            res.append(_global_dict.get(key, None))
+    res = [_global_dict.get(key, None) for key in keys]
 
     return res[0] if len(res) == 1 else res
