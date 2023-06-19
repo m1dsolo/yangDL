@@ -4,28 +4,27 @@
 
 Features:
 
-1. 多折train, val, test，自动汇聚多折结果平均值。
-2. 自动将结果写入TensorBoard中。
-3. EarlyStop。
-4. 二分类时自动选择最佳阈值。
+1. 简化代码逻辑，减少代码量。
+2. 多折train, val, test，自动汇聚多折结果平均值。
+3. 自动将结果写入TensorBoard中。
+4. EarlyStop。
 5. 可定制化进度条，终端实时显示运行结果。
-6. 更漂亮的错误打印。
-7. 简洁的代码可用于入门深度学习。
+6. 简洁的代码可用于入门深度学习。
 
 Metrics:
 
 1. 二分类：
-    支持指标：[acc, pos\_acc, neg\_acc, precision, recall, sensitivity, specificity, f1\_score, auc, ap, thresh]
-    支持选择阈值使得f1\_score或者roc\_auc最大。
+    - 支持指标：[acc, pos\_acc, neg\_acc, precision, recall, sensitivity, specificity, f1\_score, auc, ap, thresh]
+    - 支持选择阈值使得f1\_score或者roc\_auc最大。
 
 2. 多分类：
-    支持指标：[acc, precision, recall, sensitivity, specificity, f1\_score, auc]
+    - 支持指标：[acc, precision, recall, sensitivity, specificity, f1\_score, auc]
 
 3. 二类分割：
-    支持指标[acc, pos\_acc, neg\_acc, precision, recall, sensitivity, specificity, f1\_score, dice, iou, thresh]
+    - 支持指标[acc, pos\_acc, neg\_acc, precision, recall, sensitivity, specificity, f1\_score, dice, iou, thresh]
 
 4. 多类分割：
-    支持指标[acc, precision, recall, sensitivity, specificity, f1\_score, dice, iou]
+    - 支持指标[acc, precision, recall, sensitivity, specificity, f1\_score, dice, iou]
 
 ## Table of Contents
 
