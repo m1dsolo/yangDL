@@ -12,6 +12,21 @@ Features:
 6. 更漂亮的错误打印。
 7. 简洁的代码可用于入门深度学习。
 
+Metrics:
+
+1. 二分类：
+    支持指标：[acc, pos\_acc, neg\_acc, precision, recall, sensitivity, specificity, f1\_score, auc, ap, thresh]
+    支持选择阈值使得f1\_score或者roc\_auc最大。
+
+2. 多分类：
+    支持指标：[acc, precision, recall, sensitivity, specificity, f1\_score, auc]
+
+3. 二类分割：
+    支持指标[acc, pos\_acc, neg\_acc, precision, recall, sensitivity, specificity, f1\_score, dice, iou, thresh]
+
+4. 多类分割：
+    支持指标[acc, precision, recall, sensitivity, specificity, f1\_score, dice, iou]
+
 ## Table of Contents
 
 - [Background](#background)
@@ -38,7 +53,8 @@ pip install yangDL
 ## Todo
 
 1. 实现DDP，支持多机多卡训练。
-2. save ckpt时save optimizer和lr_scheduler
+2. save ckpt时save optimizer和lr_scheduler(为了恢复checkpoint继续训练)
+3. 实现检测和实例分割Metrics(比如mAP)
 
 ## License
 
