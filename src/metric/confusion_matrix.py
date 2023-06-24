@@ -31,7 +31,8 @@ class ConfusionMatrix(Metric):
         Confusion Matrix
 
         Args:
-            num_classes: class num, each label should be in the range [0, C]
+            num_classes: class num, each label should be in the range [0, C)
+                - if num_classes == 2: label 0 must be negative class, label 1 will must be positive class
             thresh: (only useful in binary classification), confusion matrix thresh, if use float will not need to save probs and labels
                 - None: for num_classes > 2
                 - float: as matrix thresh value
@@ -69,7 +70,7 @@ class ConfusionMatrix(Metric):
         self.add_tensor('_matrix', torch.zeros((num_classes, num_classes), dtype=torch.long))
         self.eps = eps
         self.save_probs = save_probs
-        if save_probs:
+        if not save_probs:
             assert not isinstance(thresh, str)
 
         if self.save_probs:

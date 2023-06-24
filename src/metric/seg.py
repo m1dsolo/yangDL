@@ -58,9 +58,21 @@ class SegMetric(Metric):
         use probs and labels to update metric
 
         Args:
-            probs: (B, C), value in [0, 1], always == F.softmax(logits, dim=1)
-            labels: (B,), value in [0, C - 1]
+            if num_classes == 2:
+                probs.shape == (B, H, W), value in [0, 1]
+                labels.shape == (B, H, W), value in (0, 1)
+            else:
+                probs.shape == (B, C, H, W), value in [0, 1]
+                labels.shape == (B, H, W), value in (0, ..., C - 1)
         """
+        if self.num_classes == 2:
+            assert probs.shape == labels.shape and len(probs.shape) == 3, f'probs.shape={probs.shape}, labels.shape={labels.shape}'
+            probs = probs.flatten(0, 2)
+        else:
+            assert len(probs.shape) == 4 and len(labels.shape) == 3, f'probs.shape={probs.shape}, labels.shape={labels.shape}'
+            probs = probs.permute(0, 2, 3, 1).flatten(0, 2)
+        labels = labels.flatten(0, 2)
+
         self.cm.update(probs, labels)
 
     @property
