@@ -2,6 +2,7 @@ import os
 
 from collections import defaultdict
 from ..utils.os import rmdir, mkdir
+from ..utils.dl import set_seed
 
 from typing import Literal
 
@@ -29,6 +30,9 @@ def set(**kwargs):
 
             EXP_NAME = os.path.basename(val if val[:-1] != '/' else val[:-1])
             _global_dict['EXP_NAME'] = EXP_NAME
+
+        elif key == 'SEED':
+            set_seed(val)
 
 
 def get(*keys):

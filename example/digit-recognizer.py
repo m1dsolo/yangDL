@@ -18,6 +18,7 @@ from yangDL.utils.io import write_dict
 from yangDL.utils.os import mkdir
 
 SEED = 1
+env.set(SEED=SEED)
 
 DATA_PATH = '.'
 EXP_PATH = './res/tmp'
@@ -44,13 +45,11 @@ model_hparams = {
 }
 
 loader_hparams = {
-    'seed': SEED,
     'batch_size': 256,
     'num_workers': 4,
 }
 
 trainer_hparams = {
-    'seed': SEED,
     'early_stop_params': {
         'patience': 10,
         'min_stop_epoch': 10,
@@ -156,7 +155,6 @@ class MyDataset(Dataset):
         
 class MyLoaderModule(LoaderModule):
     def __init__(self,
-                 seed: int,
                  batch_size: int,
                  num_workers: int,
                  ):
@@ -172,7 +170,7 @@ class MyLoaderModule(LoaderModule):
         test = pd.read_csv('./test.csv')
         self.test_imgs = test.values.reshape(-1, 28, 28)
 
-        skf = StratifiedKFold(5, shuffle=True, random_state=seed)
+        skf = StratifiedKFold(5, shuffle=True, random_state=SEED)
         self.train_idxs, self.val_idxs = [], []
         for train_idx, val_idx in skf.split(self.train_imgs, self.train_labels):
             self.train_idxs.append(train_idx)

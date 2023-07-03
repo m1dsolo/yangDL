@@ -23,7 +23,11 @@ class Logger():
     def __init__(self,
                  fold: int,
                  ):
-        self.writer = SummaryWriter(os.path.join(env.get('LOG_PATH'), str(fold)))
+        log_path = env.get('LOG_PATH')
+        if log_path:
+            self.writer = SummaryWriter(os.path.join(log_path, str(fold)))
+        else:
+            self.writer = None
 
     def log(self, 
             metric: Metric,
@@ -38,6 +42,7 @@ class Logger():
             stage: in ('train', 'val', 'test')
             step: tensorboard scalar step
         """
+        assert self.writer is not None
 
         for name, val in metric.res.items():
             if metric.prefix is not None:
@@ -45,4 +50,5 @@ class Logger():
             self.writer.add_scalar(f'{name}/{stage}', val, step)
 
     def __del__(self):
-        self.writer.close()
+        if self.writer is not None:
+            self.writer.close()

@@ -1,4 +1,4 @@
-import torch, os, copy, resource, datetime
+import torch, os, copy, datetime
 import numpy as np
 from collections import defaultdict
 
@@ -20,7 +20,7 @@ from .ui import EpochProgress
 
 from ..utils.os import mkdir
 from ..utils.io import write_dict
-from ..utils.dl import set_seed, get_model_devices
+from ..utils.dl import get_model_devices
 from ..utils.helper import WithNone
 from ..utils.python import method_is_overrided_in_subclass
 from ..utils.func import merge_dict
@@ -120,18 +120,15 @@ class Trainer():
         5. train, val, test, predict
         """
 
-        resource.setrlimit(resource.RLIMIT_NOFILE, (1000000, 1000000))
-
         for fold, (_, train_loader, val_loader, test_loader, predict_loader) in enumerate(zip(self.model_module, self.loader_module.train_loader(), self.loader_module.val_loader(), self.loader_module.test_loader(), self.loader_module.predict_loader()), 1):
-            set_seed(self.seed)
-
             for name, model in self.model_module.named_models.items():
                 setattr(self.model_module, name, model.to(self.device))
             for name, metric in self.model_module.named_metrics.items():
                 metric.to(self.device)
 
             self.logger = Logger(fold)
-            self.early_stop.init()
+            if self.early_stop is not None:
+                self.early_stop.init()
 
             self._do_fold(fold, train_loader, val_loader, test_loader, predict_loader)
         res = self._save_res()
@@ -145,6 +142,10 @@ class Trainer():
         test_loader: Optional[DataLoader] = None,
         predict_loader: Optional[DataLoader] = None,
     ) -> None:
+
+        if train_loader is None and val_loader is None and test_loader is None:
+            self._do_epoch('predict', predict_loader, fold, -1)
+            return
 
         if train_loader:
             for epoch in range(0 if self.val_first else 1, self.early_stop.max_stop_epoch + 1):
@@ -171,9 +172,9 @@ class Trainer():
             self._update_res(self.train_res, self.best_train_named_metrics)
         if val_loader:
             self._update_res(self.val_res, self.best_val_named_metrics)
-        if test_loader or predict_loader:
-            self._load_ckpt(fold, self.early_stop.best_epoch if self.save_all_ckpt else None)
         if test_loader:
+            self._load_ckpt(fold, self.early_stop.best_epoch if self.save_all_ckpt else None)
+        if test_loader or predict_loader:
             named_metrics = self._do_epoch('test', test_loader, fold, -1)
             self._update_res(self.test_res, named_metrics)
         if predict_loader:
@@ -291,10 +292,13 @@ class Trainer():
                 self.logger.log(metric, stage, step)
     
     def _batch_to_device(self, batch):
+        """
+        incomplete consideration
+        """
         if isinstance(batch, Tensor):
             batch = batch.to(self.device)
         if isinstance(batch, dict):
-            batch = {key: val.to(self.device) for key, val in batch.items()}
+            batch = {key: (val.to(self.device) if isinstance(val, torch.Tensor) else val)for key, val in batch.items()}
         else:
             batch = [(item.to(self.device) if isinstance(item, torch.Tensor) else item) for item in batch]
         return batch
