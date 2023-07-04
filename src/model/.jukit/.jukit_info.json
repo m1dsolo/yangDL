@@ -1,0 +1,1 @@
+{"cmd": "\nimport os\n\nos.path.getsize('/home/yang/ckpt/sam_vit_h.pth') / 1024 / 1024", "cmd_opts": " --cell_id=Czjtpwr8qC -s", "import_complete": 1, "terminal": "nvimterm"}

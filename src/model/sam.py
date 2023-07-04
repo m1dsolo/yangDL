@@ -1,4 +1,4 @@
-import torch
+import os, torch
 from torch import Tensor
 from typing import Optional
 
@@ -14,7 +14,7 @@ __all__ = [
 class SAM(BaseModel):
     def __init__(
         self, 
-        type='vit_h', 
+        checkpoint: str,
         pixel_mean: list[float] = [123.675, 116.28, 103.53],
         pixel_std: list[float] = [58.395, 57.12, 57.375]
     ):
@@ -23,9 +23,19 @@ class SAM(BaseModel):
         """
 
         self.resize = ResizeLongestSide(1024)
-        self.sam = sam_model_registry[type](checkpoint=f'/home/yang/ckpt/sam_{type}.pth')
+        sam_type = self._get_sam_type(checkpoint)
+        self.sam = sam_model_registry[sam_type](checkpoint=checkpoint)
         self.sam.register_buffer("pixel_mean", torch.Tensor(pixel_mean).view(-1, 1, 1), False)
         self.sam.register_buffer("pixel_std", torch.Tensor(pixel_std).view(-1, 1, 1), False)
+
+    def _get_sam_type(self, checkpoint: str):
+        gb = os.path.getsize(checkpoint)
+        if gb > 2:
+            return 'vit_h'
+        elif gb > 1:
+            return 'vit_l'
+        else:
+            return 'vit_b'
 
     def gen_image_embeddings(self, x):
         """
