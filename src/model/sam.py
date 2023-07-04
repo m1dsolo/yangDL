@@ -2,6 +2,7 @@ import os, torch
 from torch import Tensor
 from typing import Optional
 
+from segment_anything.modeling import Sam
 from segment_anything import sam_model_registry
 from segment_anything.utils.transforms import ResizeLongestSide
 
@@ -19,7 +20,7 @@ class SAM(BaseModel):
         pixel_std: list[float] = [58.395, 57.12, 57.375]
     ):
         """
-        My SAM
+        My SAM, freeze image encoder
         """
 
         self.resize = ResizeLongestSide(1024)
@@ -45,6 +46,7 @@ class SAM(BaseModel):
         Returns:
             image_embeddings: (B, 256, 64, 64)
         """
+        print(x.device)
         with torch.no_grad():
             x = self.resize.apply_image_torch(x)
             x = self.sam.preprocess(x)
@@ -54,28 +56,43 @@ class SAM(BaseModel):
     
     def __call__(
         self,
-        image_embeddings: Tensor,
-        original_size: tuple[int, ...],
+        image: Optional[Tensor]=None,
+        original_size: Optional[tuple[int, ...]]=None,
+        image_embeddings: Optional[Tensor]=None,
         points: Optional[Tensor]=None,
         boxes: Optional[Tensor]=None,
         masks: Optional[Tensor]=None,
     ) -> dict[str, Tensor]:
         """
+        do one image
+
         Args:
-            image_embeddings: (1, 256, 64, 64)
+            image: (3, H, W)
             original_size: original image size, (H, W)
+            image_embeddings: (256, 64, 64)
             points: (B, N, 2)
             boxes: (B, 4)
-            masks: (B, 1, H, W)
+            masks: (B, H, W)
+
+        Returns:
         """
+        if original_size is None:
+            assert image is not None
+            original_size = image.shape[-2:]
+        if image_embeddings is None:
+            assert image is not None
+            with torch.no_grad():
+                image_embeddings = self.gen_image_embeddings(image[None])[0]
         if points is not None:
             points = self.resize.apply_coords_torch(points)
         if boxes is not None:
             boxes = self.resize.apply_boxes_torch(boxes, original_size)
+        if masks is not None:
+            masks = masks[:, None, ...]
 
         sparse, dense = self.sam.prompt_encoder(points=points, boxes=boxes, masks=masks)
         low_res_logits, iou_predictions = self.sam.mask_decoder(
-            image_embeddings=image_embeddings,
+            image_embeddings=image_embeddings[None],
             image_pe=self.sam.prompt_encoder.get_dense_pe(),
             sparse_prompt_embeddings=sparse,
             dense_prompt_embeddings=dense,
@@ -85,8 +102,8 @@ class SAM(BaseModel):
         input_size = ResizeLongestSide.get_preprocess_shape(original_size[0], original_size[1], 1024)
         logits = self.sam.postprocess_masks(low_res_logits, input_size, original_size)
 
-        # (B, 1, 512, 512), (B, 1)
-        return {'logits': logits, 'iou_predictions': iou_predictions}
+        # (B, 512, 512), (B)
+        return {'logits': logits[:, 0, ...], 'iou_predictions': iou_predictions[:, 0]}
 
     def cuda(self, device = None):
         self.sam = self.sam.cuda(device)
