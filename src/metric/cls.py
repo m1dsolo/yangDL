@@ -38,6 +38,7 @@ class ClsMetric(Metric):
                 prefix, freq: see Metric class
         """
 
+        self.num_classes = num_classes # no use now
         if properties is None:
             if num_classes == 2:
                 self.properties = ['acc', 'pos_acc', 'neg_acc', 'precision', 'recall', 'sensitivity', 'specificity', 'f1_score', 'auc', 'ap', 'thresh']

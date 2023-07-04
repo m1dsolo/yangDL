@@ -11,6 +11,7 @@ from . import env
 from ..metric import Metric
 
 from ..utils.python import clear_rich
+from ..model import BaseModel
 
 __all__ = [
     'ModelModule',
@@ -49,7 +50,7 @@ class ModelModule():
 
     @property
     def named_models(self) -> dict[str, nn.Module]:
-        return dict(filter(lambda kv: Module in kv[1].__class__.__mro__, self.__dict__.items()))
+        return dict(filter(lambda kv: (Module in kv[1].__class__.__mro__) or (BaseModel in kv[1].__class__.__mro__), self.__dict__.items()))
 
     @property
     def named_metrics(self) -> dict[str, Metric]:
