@@ -46,7 +46,6 @@ class SAM(BaseModel):
         Returns:
             image_embeddings: (B, 256, 64, 64)
         """
-        print(x.device)
         with torch.no_grad():
             x = self.resize.apply_image_torch(x)
             x = self.sam.preprocess(x)
