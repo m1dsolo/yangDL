@@ -7,7 +7,15 @@ with open("README.md", "r") as fh:
 setup(
     name='yangDL',
     version='0.0.1',
-    packages=setuptools.find_packages(),
+    packages=[
+        'yangDL', 
+        'yangDL.core',
+        'yangDL.dataset',
+        'yangDL.metric',
+        'yangDL.model',
+        'yangDL.utils',
+    ],
+    package_dir={'': 'src'},
     url='https://github.com/m1dsolo/yangDL',
     license='MIT',
     author='m1dsolo',
